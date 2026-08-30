@@ -6,9 +6,9 @@ import (
 )
 
 func sanitizeString(s string, maxLen int) string {
-	// Remove null bytes and other control characters
+	// Remove null bytes and other control characters (preserve 0x1F unit separator for avatar URLs)
 	s = strings.Map(func(r rune) rune {
-		if r == 0 || (r < 32 && r != '\t' && r != '\n' && r != '\r') {
+		if r == 0 || (r < 32 && r != '\t' && r != '\n' && r != '\r' && r != 0x1F) {
 			return -1
 		}
 		return r

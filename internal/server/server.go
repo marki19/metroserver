@@ -70,7 +70,7 @@ const (
 	// Minimum time to keep empty rooms after server restart (for reconnection)
 	MinRoomRetentionAfterRestart = 2 * time.Minute
 	// Security limits
-	MaxUsernameLength     = 50
+	MaxUsernameLength     = 2048
 	MaxRoomCodeLength     = 6
 	MaxTrackTitleLength   = 200
 	MaxTrackArtistLength  = 200
