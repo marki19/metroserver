@@ -233,6 +233,8 @@ func (s *Server) handleMessage(c *Client, data []byte) {
 		s.handleRejectSuggestion(c, payloadBytes)
 	case MsgTypeClientCapabilities:
 		s.handleClientCapabilities(c, payloadBytes)
+	case MsgTypeChat:
+		s.handleChat(c, payloadBytes)
 	default:
 		c.sendError(s.logger, "unknown_message_type", fmt.Sprintf("Unknown message type: %s", msgType))
 	}
@@ -305,3 +307,22 @@ func (s *Server) closeAllClients() {
 }
 
 
+
+
+func (s *Server) handleChat(c *Client, payload []byte) {
+	room := c.currentRoom()
+	if room == nil {
+		c.sendError(s.logger, "not_in_room", "You are not in a room")
+		return
+	}
+	if len(payload) == 0 {
+		return
+	}
+
+	room.mu.Lock()
+	clients := roomClientsLocked(room)
+	room.mu.Unlock()
+
+	sendMessageToClients(s.logger, clients, MsgTypeChat, payload)
+	s.logger.Debug("Chat message broadcast", zap.String("room", room.Code), zap.String("sender", c.userName()))
+}

@@ -15,6 +15,7 @@ const (
 	MsgTypeRequestSync        = "request_sync"
 	MsgTypeReconnect          = "reconnect"
 	MsgTypeSuggestTrack       = "suggest_track"
+	MsgTypeChat               = "chat"
 	MsgTypeApproveSuggestion  = "approve_suggestion"
 	MsgTypeRejectSuggestion   = "reject_suggestion"
 	MsgTypeClientCapabilities = "client_capabilities"
@@ -300,3 +301,4 @@ type UserDisconnectedPayload struct {
 	UserID   string `json:"user_id"`
 	Username string `json:"username"`
 }
+

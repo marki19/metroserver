@@ -50,15 +50,17 @@ func (c *MessageCodec) encodeProtobuf(msgType string, payload interface{}) ([]by
 	var payloadBytes []byte
 
 	if payload != nil {
-		// Convert payload to protobuf message
-		protoMsg, err := toProtoMessage(payload)
-		if err != nil {
-			return nil, fmt.Errorf("convert to proto: %w", err)
-		}
-
-		payloadBytes, err = proto.Marshal(protoMsg)
-		if err != nil {
-			return nil, fmt.Errorf("marshal proto payload: %w", err)
+		if rawBytes, ok := payload.([]byte); ok {
+			payloadBytes = rawBytes
+		} else {
+			protoMsg, err := toProtoMessage(payload)
+			if err != nil {
+				return nil, fmt.Errorf("convert to proto: %w", err)
+			}
+			payloadBytes, err = proto.Marshal(protoMsg)
+			if err != nil {
+				return nil, fmt.Errorf("marshal proto payload: %w", err)
+			}
 		}
 	}
 
@@ -730,3 +732,5 @@ func decodePayload(payloadBytes []byte, msgType string, target interface{}) erro
 	}
 	return nil
 }
+
+
