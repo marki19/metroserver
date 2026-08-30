@@ -123,9 +123,13 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 	switch p.Action {
 	case ActionPlay:
 		if room.State.CurrentTrack == nil {
-			room.mu.Unlock()
-			c.sendError(s.logger, "no_track", "Cannot play without a track")
-			return
+			if p.TrackInfo != nil && p.TrackInfo.ID != "" {
+				room.State.CurrentTrack = p.TrackInfo
+			} else {
+				room.mu.Unlock()
+				s.logger.Debug("Ignoring play action without loaded track", zap.String("room", room.Code))
+				return
+			}
 		}
 		if p.Position < 0 {
 			room.mu.Unlock()
@@ -403,3 +407,4 @@ func (s *Server) handleRequestSync(c *Client) {
 		zap.Uint64("revision", response.Revision))
 	c.sendMessage(s.logger, MsgTypeSyncState, response)
 }
+
