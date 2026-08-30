@@ -103,9 +103,6 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 		c.sendError(s.logger, "not_in_room", "You are not in a room")
 		return
 	}
-	room.mu.RLock()
-	isHost := room.Host == c && room.HostDisconnectedAt == nil && room.Clients[c.clientID()] == c
-	room.mu.RUnlock()
 
 	var p PlaybackActionPayload
 	if err := decodePayload(payload, MsgTypePlaybackAction, &p); err != nil {
