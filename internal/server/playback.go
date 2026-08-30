@@ -106,10 +106,6 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 	room.mu.RLock()
 	isHost := room.Host == c && room.HostDisconnectedAt == nil && room.Clients[c.clientID()] == c
 	room.mu.RUnlock()
-	if !isHost {
-		c.sendError(s.logger, "not_host", "Only the host can control playback")
-		return
-	}
 
 	var p PlaybackActionPayload
 	if err := decodePayload(payload, MsgTypePlaybackAction, &p); err != nil {
@@ -125,12 +121,6 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 	room.syncMu.Lock()
 	defer room.syncMu.Unlock()
 	room.mu.Lock()
-
-	if room.Host != c || room.HostDisconnectedAt != nil || room.Clients[c.clientID()] != c {
-		room.mu.Unlock()
-		c.sendError(s.logger, "not_host", "Only the host can control playback")
-		return
-	}
 
 	nowMs := time.Now().UnixMilli()
 	switch p.Action {
