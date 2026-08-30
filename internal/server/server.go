@@ -71,7 +71,7 @@ const (
 	MinRoomRetentionAfterRestart = 2 * time.Minute
 	// Security limits
 	MaxUsernameLength     = 50
-	MaxRoomCodeLength     = 10
+	MaxRoomCodeLength     = 6
 	MaxTrackTitleLength   = 200
 	MaxTrackArtistLength  = 200
 	MaxTrackURLLength     = 2048
@@ -121,7 +121,7 @@ func NewServer(logger *zap.Logger) *Server {
 
 func (s *Server) generateRoomCode() string {
 	const chars = "1234567890QWERTYUPASDFGHJLKZXCVBNM"
-	code := make([]byte, 8)
+	code := make([]byte, 6)
 	s.rngMu.Lock()
 	for i := range code {
 		code[i] = chars[s.rng.Intn(len(chars))]
@@ -303,3 +303,5 @@ func (s *Server) closeAllClients() {
 		client.closeSend()
 	}
 }
+
+
