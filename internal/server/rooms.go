@@ -843,12 +843,14 @@ func (s *Server) leaveRoom(c *Client) {
 		return
 	}
 
-	// If host left, transfer to another user
+	// If host left, transfer to the next user in chronological join order
 	var newHost *Client
 	if wasHost {
-		for _, client := range room.Clients {
-			newHost = client
-			break
+		for _, u := range room.State.Users {
+			if client, exists := room.Clients[u.UserID]; exists && client != nil {
+				newHost = client
+				break
+			}
 		}
 		if newHost != nil {
 			room.Host = newHost

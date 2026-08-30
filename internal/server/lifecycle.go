@@ -63,8 +63,8 @@ func (s *Server) cleanupExpiredSessionsOnce(now time.Time) {
 		var hostChanged *HostChangedPayload
 		if expiredWasHost {
 			var newHost *Client
-			for _, client := range room.Clients {
-				if client != nil {
+			for _, u := range room.State.Users {
+				if client, exists := room.Clients[u.UserID]; exists && client != nil {
 					newHost = client
 					break
 				}
@@ -270,10 +270,41 @@ func (s *Server) handleClientDisconnect(c *Client) {
 		}
 	}
 
-	// Track if host disconnected
+	// Track if host disconnected and immediately transfer host to the next user in join order
+	var hostChanged *HostChangedPayload
 	if wasHost {
-		now := time.Now()
-		room.HostDisconnectedAt = &now
+		var newHost *Client
+		for _, u := range room.State.Users {
+			if u.UserID != clientID {
+				if client, exists := room.Clients[u.UserID]; exists && client != nil {
+					newHost = client
+					break
+				}
+			}
+		}
+
+		room.Host = newHost
+		room.HostDisconnectedAt = nil
+		if newHost != nil {
+			newHostID := newHost.clientID()
+			newHostName := newHost.userName()
+			room.State.HostID = newHostID
+			for i := range room.State.Users {
+				room.State.Users[i].IsHost = (room.State.Users[i].UserID == newHostID)
+			}
+			hostChanged = &HostChangedPayload{
+				NewHostID:   newHostID,
+				NewHostName: newHostName,
+			}
+			s.logger.Info("Host disconnected, transferred host to next participant in join order",
+				zap.String("room_code", room.Code),
+				zap.String("previous_host", username),
+				zap.String("new_host", newHostName))
+		} else {
+			now := time.Now()
+			room.HostDisconnectedAt = &now
+			room.State.HostID = ""
+		}
 	}
 
 	c.clearRoom(room)
@@ -291,12 +322,15 @@ func (s *Server) handleClientDisconnect(c *Client) {
 	room.mu.Unlock()
 	s.mu.Unlock()
 
-	// Notify other users about the temporary disconnect
+	// Notify other users about the temporary disconnect and host transfer
 	for _, client := range clientsToNotify {
 		client.sendMessage(s.logger, MsgTypeUserDisconnected, UserDisconnectedPayload{
 			UserID:   clientID,
 			Username: username,
 		})
+		if hostChanged != nil {
+			client.sendMessage(s.logger, MsgTypeHostChanged, *hostChanged)
+		}
 	}
 
 	s.logger.Info("User temporarily disconnected",
@@ -393,8 +427,8 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 		}
 	}
 
-	// Restore host status if they were the host
-	if session.IsHost || (room.Host == nil && room.State.HostID == "") {
+	// Restore host status only if there is currently no active host in the room
+	if room.Host == nil && (room.State.HostID == "" || room.State.HostID == session.UserID) {
 		room.Host = c
 		room.HostDisconnectedAt = nil
 		room.State.HostID = session.UserID
