@@ -250,12 +250,28 @@ func (s *Server) handlePing(c *Client, payload []byte) {
 		}
 	}
 
-	c.sendMessage(s.logger, MsgTypePong, PongPayload{
+	pong := PongPayload{
 		ClientTime:        p.ClientTime,
 		ServerReceiveTime: receivedAt,
 		ServerSendTime:    time.Now().UnixMilli(),
 		Sequence:          p.Sequence,
-	})
+	}
+
+	// Embed authoritative room state so clients can do instant drift correction
+	// on every pong rather than waiting for an explicit playback action.
+	if room := c.currentRoom(); room != nil {
+		room.mu.RLock()
+		state := room.State
+		if state != nil && state.CurrentTrack != nil && state.CurrentTrack.ID != "" {
+			pong.AuthoritativeTrackID = state.CurrentTrack.ID
+			pong.AuthoritativeIsPlaying = state.IsPlaying
+			pong.AuthoritativePosition = state.Position
+			pong.AuthoritativeServerTime = state.LastUpdate
+		}
+		room.mu.RUnlock()
+	}
+
+	c.sendMessage(s.logger, MsgTypePong, pong)
 }
 
 func (s *Server) handleClientCapabilities(c *Client, payload []byte) {

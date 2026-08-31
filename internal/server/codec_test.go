@@ -162,7 +162,7 @@ func TestToProtoMessageVariants(t *testing.T) {
 		{"playback pointer", &playback, pbPlayback},
 		{"buffer ready pointer", &BufferReadyPayload{TrackID: "track"}, &pb.BufferReadyPayload{TrackId: "track"}},
 		{"ping pointer", &PingPayload{ClientTime: 10, Sequence: 2}, &pb.PingPayload{ClientTime: 10, Sequence: 2}},
-		{"pong pointer", &PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2}, &pb.PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2}},
+		{"pong pointer", &PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2, AuthoritativeTrackID: "track1", AuthoritativeIsPlaying: true, AuthoritativePosition: 5000, AuthoritativeServerTime: 10000}, &pb.PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2, AuthoritativeTrackId: "track1", AuthoritativeIsPlaying: true, AuthoritativePosition: 5000, AuthoritativeServerTime: 10000}},
 		{"kick user pointer", &KickUserPayload{UserID: "user", Reason: "reason"}, &pb.KickUserPayload{UserId: "user", Reason: "reason"}},
 		{"transfer host pointer", &TransferHostPayload{NewHostID: "user"}, &pb.TransferHostPayload{NewHostId: "user"}},
 		{"suggest track pointer", &SuggestTrackPayload{TrackInfo: &track}, &pb.SuggestTrackPayload{TrackInfo: pbTrack}},
@@ -210,7 +210,7 @@ func TestToProtoMessageVariants(t *testing.T) {
 		{"suggestion rejected value", SuggestionRejectedPayload{SuggestionID: "suggestion", Reason: "reason"}, &pb.SuggestionRejectedPayload{SuggestionId: "suggestion", Reason: "reason"}},
 		{"playback value", playback, pbPlayback},
 		{"ping value", PingPayload{ClientTime: 10, Sequence: 2}, &pb.PingPayload{ClientTime: 10, Sequence: 2}},
-		{"pong value", PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2}, &pb.PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2}},
+		{"pong value", PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2, AuthoritativeTrackID: "track1", AuthoritativeIsPlaying: true, AuthoritativePosition: 5000, AuthoritativeServerTime: 10000}, &pb.PongPayload{ClientTime: 10, ServerReceiveTime: 20, ServerSendTime: 21, Sequence: 2, AuthoritativeTrackId: "track1", AuthoritativeIsPlaying: true, AuthoritativePosition: 5000, AuthoritativeServerTime: 10000}},
 		{"server capabilities value", ServerCapabilitiesPayload{SupportsProtobuf: true, SupportsCompression: true, ServerVersion: "1"}, &pb.ServerCapabilities{SupportsProtobuf: true, SupportsCompression: true, ServerVersion: "1"}},
 	}
 

@@ -617,6 +617,9 @@ func TestHandleMessagePingUnknownInvalidAndDispatch(t *testing.T) {
 		if pong.ClientTime != 1234 || pong.Sequence != 7 || pong.ServerReceiveTime < before || pong.ServerSendTime < pong.ServerReceiveTime {
 			t.Fatalf("invalid pong timing sample: %#v", &pong)
 		}
+		if pong.AuthoritativeTrackId != "current" {
+			t.Fatalf("expected authoritative track id 'current', got %q", pong.AuthoritativeTrackId)
+		}
 	})
 
 	t.Run("unknown", func(t *testing.T) {

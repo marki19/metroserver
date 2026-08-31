@@ -195,7 +195,16 @@ func toProtoMessage(payload interface{}) (proto.Message, error) {
 	case *PingPayload:
 		return &pb.PingPayload{ClientTime: p.ClientTime, Sequence: p.Sequence}, nil
 	case *PongPayload:
-		return &pb.PongPayload{ClientTime: p.ClientTime, ServerReceiveTime: p.ServerReceiveTime, ServerSendTime: p.ServerSendTime, Sequence: p.Sequence}, nil
+		return &pb.PongPayload{
+			ClientTime:              p.ClientTime,
+			ServerReceiveTime:       p.ServerReceiveTime,
+			ServerSendTime:          p.ServerSendTime,
+			Sequence:                p.Sequence,
+			AuthoritativeTrackId:    p.AuthoritativeTrackID,
+			AuthoritativeIsPlaying:  p.AuthoritativeIsPlaying,
+			AuthoritativePosition:   p.AuthoritativePosition,
+			AuthoritativeServerTime: p.AuthoritativeServerTime,
+		}, nil
 	case *KickUserPayload:
 		return &pb.KickUserPayload{UserId: p.UserID, Reason: p.Reason}, nil
 	case *TransferHostPayload:
@@ -411,7 +420,16 @@ func toProtoMessage(payload interface{}) (proto.Message, error) {
 	case PingPayload:
 		return &pb.PingPayload{ClientTime: p.ClientTime, Sequence: p.Sequence}, nil
 	case PongPayload:
-		return &pb.PongPayload{ClientTime: p.ClientTime, ServerReceiveTime: p.ServerReceiveTime, ServerSendTime: p.ServerSendTime, Sequence: p.Sequence}, nil
+		return &pb.PongPayload{
+			ClientTime:              p.ClientTime,
+			ServerReceiveTime:       p.ServerReceiveTime,
+			ServerSendTime:          p.ServerSendTime,
+			Sequence:                p.Sequence,
+			AuthoritativeTrackId:    p.AuthoritativeTrackID,
+			AuthoritativeIsPlaying:  p.AuthoritativeIsPlaying,
+			AuthoritativePosition:   p.AuthoritativePosition,
+			AuthoritativeServerTime: p.AuthoritativeServerTime,
+		}, nil
 	case ServerCapabilitiesPayload:
 		return &pb.ServerCapabilities{SupportsProtobuf: p.SupportsProtobuf, SupportsCompression: p.SupportsCompression, ServerVersion: p.ServerVersion}, nil
 

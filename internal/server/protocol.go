@@ -144,6 +144,13 @@ type PongPayload struct {
 	ServerReceiveTime int64  `json:"server_receive_time"`
 	ServerSendTime    int64  `json:"server_send_time"`
 	Sequence          uint64 `json:"sequence"`
+	// Authoritative room state - zero/empty when the client is not in a room.
+	// Populated so that the client can do instant drift correction on every pong
+	// instead of waiting for an explicit playback action to carry a reference time.
+	AuthoritativeTrackID    string `json:"authoritative_track_id,omitempty"`
+	AuthoritativeIsPlaying  bool   `json:"authoritative_is_playing,omitempty"`
+	AuthoritativePosition   int64  `json:"authoritative_position,omitempty"`
+	AuthoritativeServerTime int64  `json:"authoritative_server_time,omitempty"`
 }
 
 // Suggestion payloads
