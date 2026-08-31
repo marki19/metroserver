@@ -10,6 +10,12 @@ PROTO_DIR="./metroproto"
 OUT_DIR="./proto"
 
 if [ ! -f "$PROTO_DIR/listentogether.proto" ]; then
+    echo "Proto file missing at $PROTO_DIR, cloning from repository..."
+    rm -rf "$PROTO_DIR"
+    git clone --depth 1 https://github.com/marki19/metroproto.git "$PROTO_DIR"
+fi
+
+if [ ! -f "$PROTO_DIR/listentogether.proto" ]; then
     echo "Missing proto file at $PROTO_DIR/listentogether.proto"
     echo "Did you initialize submodules? Try: git submodule update --init --recursive"
     exit 1
