@@ -270,42 +270,9 @@ func (s *Server) handleClientDisconnect(c *Client) {
 		}
 	}
 
-	// Track if host disconnected and immediately transfer host to the next user in join order
-	var hostChanged *HostChangedPayload
-	if wasHost {
-		var newHost *Client
-		for _, u := range room.State.Users {
-			if u.UserID != clientID {
-				if client, exists := room.Clients[u.UserID]; exists && client != nil {
-					newHost = client
-					break
-				}
-			}
-		}
-
-		room.Host = newHost
-		room.HostDisconnectedAt = nil
-		if newHost != nil {
-			newHostID := newHost.clientID()
-			newHostName := newHost.userName()
-			room.State.HostID = newHostID
-			for i := range room.State.Users {
-				room.State.Users[i].IsHost = (room.State.Users[i].UserID == newHostID)
-			}
-			hostChanged = &HostChangedPayload{
-				NewHostID:   newHostID,
-				NewHostName: newHostName,
-			}
-			s.logger.Info("Host disconnected, transferred host to next participant in join order",
-				zap.String("room_code", room.Code),
-				zap.String("previous_host", username),
-				zap.String("new_host", newHostName))
-		} else {
-			now := time.Now()
-			room.HostDisconnectedAt = &now
-			room.State.HostID = ""
-		}
-	}
+	// Track if host disconnected - host transfer is delayed until session expires
+	// to allow the original host to reconnect within the grace period.
+	// Host transfer happens in cleanupExpiredSessionsOnce() when the session is removed.
 
 	c.clearRoom(room)
 
@@ -322,15 +289,13 @@ func (s *Server) handleClientDisconnect(c *Client) {
 	room.mu.Unlock()
 	s.mu.Unlock()
 
-	// Notify other users about the temporary disconnect and host transfer
+	// Notify other users about the temporary disconnect. Host transfer happens later
+	// when the session expires (cleanupExpiredSessionsOnce), not immediately.
 	for _, client := range clientsToNotify {
 		client.sendMessage(s.logger, MsgTypeUserDisconnected, UserDisconnectedPayload{
 			UserID:   clientID,
 			Username: username,
 		})
-		if hostChanged != nil {
-			client.sendMessage(s.logger, MsgTypeHostChanged, *hostChanged)
-		}
 	}
 
 	s.logger.Info("User temporarily disconnected",
@@ -427,8 +392,22 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 		}
 	}
 
-	// Restore host status only if there is currently no active host in the room
-	if room.Host == nil && (room.State.HostID == "" || room.State.HostID == session.UserID) {
+	// Restore host status if the reconnecting user was the original host.
+	// This allows the original host to reclaim ownership even if someone else
+	// temporarily became host during the grace period.
+	var hostChanged *HostChangedPayload
+	if session.IsHost || room.State.HostID == session.UserID {
+		// If there was a temporary host, they lose host status
+		if room.Host != nil && room.Host != c {
+			oldHost := room.Host
+			// Update old host's IsHost flag
+			for i := range room.State.Users {
+				if room.State.Users[i].UserID == oldHost.clientID() {
+					room.State.Users[i].IsHost = false
+					break
+				}
+			}
+		}
 		room.Host = c
 		room.HostDisconnectedAt = nil
 		room.State.HostID = session.UserID
@@ -436,6 +415,11 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 		// Update IsHost flag in users list
 		for i := range room.State.Users {
 			room.State.Users[i].IsHost = room.State.Users[i].UserID == session.UserID
+		}
+
+		hostChanged = &HostChangedPayload{
+			NewHostID:   session.UserID,
+			NewHostName: session.Username,
 		}
 	}
 
@@ -509,6 +493,10 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 			UserID:   c.clientID(),
 			Username: c.userName(),
 		})
+		// Notify if host was reclaimed
+		if hostChanged != nil {
+			client.sendMessage(s.logger, MsgTypeHostChanged, *hostChanged)
+		}
 	}
 
 	s.logger.Info("User reconnected",

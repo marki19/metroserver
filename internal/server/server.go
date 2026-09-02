@@ -59,8 +59,9 @@ type Server struct {
 }
 
 const (
-	// Grace period for reconnection (increased from 5 to 15 minutes for better recovery)
-	ReconnectGracePeriod = 15 * time.Minute
+	// Grace period for reconnection. After this time, disconnected users are removed
+	// from the room and host ownership is transferred to the next eligible member.
+	ReconnectGracePeriod = 5 * time.Minute
 	// How often to clean up expired sessions
 	SessionCleanupInterval = 1 * time.Minute
 	// How long to keep empty rooms before deleting them
