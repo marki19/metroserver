@@ -335,6 +335,60 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 	}
 	s.mu.Unlock()
 
+	// Detect and cleanup ghost connections
+	if !exists {
+		s.mu.RLock()
+		var ghostClient *Client
+		for _, room := range s.rooms {
+			room.mu.RLock()
+			for _, client := range room.Clients {
+				if client.session() == p.SessionToken {
+					ghostClient = client
+					break
+				}
+			}
+			room.mu.RUnlock()
+			if ghostClient != nil {
+				break
+			}
+		}
+		s.mu.RUnlock()
+
+		if ghostClient != nil {
+			s.logger.Info("Ghost connection detected during reconnect, forcefully replacing", zap.String("sessionToken", p.SessionToken))
+			ghostClient.conn.Close()
+
+			room := ghostClient.currentRoom()
+			if room != nil {
+				wasHost := room.Host == ghostClient
+				session = &Session{
+					UserID:       ghostClient.clientID(),
+					Username:     ghostClient.userName(),
+					RoomCode:     room.Code,
+					IsHost:       wasHost,
+					DisconnectAt: time.Now(),
+				}
+
+				s.mu.Lock()
+				room.mu.Lock()
+				// Only remove if it's still the ghost client
+				if room.Clients[ghostClient.clientID()] == ghostClient {
+					delete(room.Clients, ghostClient.clientID())
+					if room.BufferingUsers != nil {
+						delete(room.BufferingUsers, ghostClient.clientID())
+					}
+					if room.DisconnectedUsers == nil {
+						room.DisconnectedUsers = make(map[string]*Session)
+					}
+					room.DisconnectedUsers[ghostClient.clientID()] = session
+					exists = true
+				}
+				room.mu.Unlock()
+				s.mu.Unlock()
+			}
+		}
+	}
+
 	if !exists {
 		c.sendError(s.logger, "session_not_found", "Session not found or expired")
 		return
