@@ -356,7 +356,7 @@ func (s *Server) handleReconnect(c *Client, payload []byte) {
 
 		if ghostClient != nil {
 			s.logger.Info("Ghost connection detected during reconnect, forcefully replacing", zap.String("sessionToken", p.SessionToken))
-			ghostClient.conn.Close()
+			ghostClient.Conn.Close()
 
 			room := ghostClient.currentRoom()
 			if room != nil {
