@@ -302,7 +302,7 @@ func (s *Server) handleClientCapabilities(c *Client, payload []byte) {
 	c.sendMessage(s.logger, MsgTypeServerCapabilities, ServerCapabilitiesPayload{
 		SupportsProtobuf:    true,
 		SupportsCompression: true,
-		ServerVersion:       "1",
+		ServerVersion:       "2",
 	})
 	c.negotiationMu.Unlock()
 }
