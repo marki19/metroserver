@@ -132,6 +132,9 @@ type PlaybackActionPayload struct {
 	ServerTime           int64       `json:"server_time,omitempty"`
 	Revision             uint64      `json:"revision,omitempty"`
 	CapturedAtServerTime int64       `json:"captured_at_server_time,omitempty"`
+	QueueVersion         uint64      `json:"queue_version,omitempty"`
+	PlaybackRevision     uint64      `json:"playback_revision,omitempty"`
+	TrackGeneration      string      `json:"track_generation,omitempty"`
 }
 
 type PingPayload struct {
@@ -227,8 +230,11 @@ type RoomState struct {
 	Position     int64       `json:"position"`    // milliseconds
 	LastUpdate   int64       `json:"last_update"` // unix timestamp ms
 	Volume       float64     `json:"volume"`
-	Queue        []TrackInfo `json:"queue,omitempty"`
-	Revision     uint64      `json:"revision,omitempty"`
+	Queue            []TrackInfo `json:"queue,omitempty"`
+	Revision         uint64      `json:"revision,omitempty"`
+	QueueVersion     uint64      `json:"queue_version,omitempty"`
+	PlaybackRevision uint64      `json:"playback_revision,omitempty"`
+	TrackGeneration  string      `json:"track_generation,omitempty"`
 }
 
 // UserInfo contains information about a user
@@ -267,9 +273,12 @@ type SyncStatePayload struct {
 	IsPlaying    bool        `json:"is_playing"`
 	Position     int64       `json:"position"`    // milliseconds
 	LastUpdate   int64       `json:"last_update"` // unix timestamp ms
-	Volume       float64     `json:"volume"`
-	Queue        []TrackInfo `json:"queue,omitempty"`
-	Revision     uint64      `json:"revision,omitempty"`
+	Volume           float64     `json:"volume"`
+	Queue            []TrackInfo `json:"queue,omitempty"`
+	Revision         uint64      `json:"revision,omitempty"`
+	QueueVersion     uint64      `json:"queue_version,omitempty"`
+	PlaybackRevision uint64      `json:"playback_revision,omitempty"`
+	TrackGeneration  string      `json:"track_generation,omitempty"`
 }
 
 // ReconnectPayload is for reconnecting to a room

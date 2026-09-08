@@ -189,20 +189,65 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 			c.sendError(s.logger, "invalid_track_info", "Track must have ID and title")
 			return
 		}
+
 		if p.Queue != nil {
 			p.Queue = sanitizeUpcomingQueue(p.Queue, p.TrackInfo.ID)
 			room.State.Queue = append([]TrackInfo(nil), p.Queue...)
+			room.State.QueueVersion++
 		}
+
+		// PlaybackHistory logic
+		oldTrack := room.State.CurrentTrack
+		newTrackID := p.TrackInfo.ID
+		historyLen := len(room.PlaybackHistory)
+		
+		isPrevious := historyLen > 0 && room.PlaybackHistory[historyLen-1].ID == newTrackID
+
+		if isPrevious {
+			// Going backwards: pop from history
+			room.PlaybackHistory = room.PlaybackHistory[:historyLen-1]
+			// Push the current track to the front of the queue if it exists
+			if oldTrack != nil {
+				room.State.Queue = append([]TrackInfo{*oldTrack}, room.State.Queue...)
+			}
+		} else {
+			// Going forwards or jumping: push current track to history
+			if oldTrack != nil {
+				room.PlaybackHistory = append(room.PlaybackHistory, *oldTrack)
+				// Cap history size to prevent unbounded growth (e.g., 50 tracks)
+				if len(room.PlaybackHistory) > 50 {
+					room.PlaybackHistory = room.PlaybackHistory[1:]
+				}
+			}
+		}
+
 		room.State.CurrentTrack = cloneTrackInfo(p.TrackInfo)
-		room.State.Queue = sanitizeUpcomingQueue(room.State.Queue, p.TrackInfo.ID)
+		
+		// Remove the new track from the queue if it's there
+		newQueue := sanitizeUpcomingQueue(room.State.Queue, newTrackID)
+		if len(newQueue) != len(room.State.Queue) {
+			room.State.Queue = newQueue
+			room.State.QueueVersion++
+		}
+		
 		room.State.Position = 0
 		room.State.IsPlaying = false
 		room.State.LastUpdate = nowMs
 		room.HostStartPosition = 0
 		room.BufferingUsers = nil
-		p.TrackID = p.TrackInfo.ID
+		
+		room.State.PlaybackRevision++
+		room.State.TrackGeneration = fmt.Sprintf("%d", nowMs)
+		
+		p.TrackID = newTrackID
 		p.Position = 0
-		s.logger.Debug("Track changed", zap.String("room_code", room.Code), zap.String("track_id", p.TrackInfo.ID))
+		
+		// Also update the payload versions so clients receive them
+		p.QueueVersion = room.State.QueueVersion
+		p.PlaybackRevision = room.State.PlaybackRevision
+		p.TrackGeneration = room.State.TrackGeneration
+		
+		s.logger.Debug("Track changed", zap.String("room_code", room.Code), zap.String("track_id", newTrackID))
 
 	case ActionSkipNext, ActionSkipPrev:
 		// The host's media transition produces the canonical change_track event.
@@ -236,6 +281,8 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 		} else {
 			room.State.Queue = append(room.State.Queue, *p.TrackInfo)
 		}
+		room.State.QueueVersion++
+		p.QueueVersion = room.State.QueueVersion
 
 	case ActionQueueRemove:
 		if p.TrackID == "" {
@@ -250,9 +297,13 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 			}
 		}
 		room.State.Queue = queue
+		room.State.QueueVersion++
+		p.QueueVersion = room.State.QueueVersion
 
 	case ActionQueueClear:
 		room.State.Queue = []TrackInfo{}
+		room.State.QueueVersion++
+		p.QueueVersion = room.State.QueueVersion
 
 	case ActionSyncQueue:
 		currentTrackID := ""
@@ -261,6 +312,8 @@ func (s *Server) handlePlaybackAction(c *Client, payload []byte) {
 		}
 		p.Queue = sanitizeUpcomingQueue(p.Queue, currentTrackID)
 		room.State.Queue = append([]TrackInfo(nil), p.Queue...)
+		room.State.QueueVersion++
+		p.QueueVersion = room.State.QueueVersion
 
 	case ActionSetVolume:
 		if math.IsNaN(p.Volume) || math.IsInf(p.Volume, 0) || p.Volume < 0 || p.Volume > 1 {

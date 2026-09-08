@@ -29,6 +29,7 @@ type Room struct {
 	PendingSuggestions map[string]*Suggestion // Track suggestions waiting for host action
 	DisconnectedUsers  map[string]*Session    // Users temporarily disconnected
 	State              *RoomState
+	PlaybackHistory    []TrackInfo     // Stores previously played tracks
 	BufferingUsers     map[string]bool // Track which users are still buffering
 	HostStartPosition  int64           // Host's position when buffering started
 	HostDisconnectedAt *time.Time      // When the host disconnected (nil if connected)
